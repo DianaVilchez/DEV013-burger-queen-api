@@ -1,33 +1,47 @@
-const bcrypt = require('bcrypt');
-
-const {
-  requireAuth,
-  requireAdmin,
-} = require('../middleware/auth');
-
-const {
-  getUsers,
-} = require('../controller/users');
-
-const initAdminUser = (app, next) => {
-  const { adminEmail, adminPassword } = app.get('config');
+const bcrypt = require("bcrypt");
+const { connect } = require("../connect");
+const { requireAuth, requireAdmin } = require("../middleware/auth");
+const { getUsers } = require("../controller/users");
+// app:objeto de la aplicación Express
+const initAdminUser = async (app, next) => {
+  const { adminEmail, adminPassword } = app.get("config");
   if (!adminEmail || !adminPassword) {
     return next();
   }
-
-  const adminUser = {
-    email: adminEmail,
-    password: bcrypt.hashSync(adminPassword, 10),
-    roles: "admin",
-  };
-
+  // const adminUser = {
+  //   email: adminEmail,
+  //   password: bcrypt.hashSync(adminPassword, 10),
+  //   roles: "admin",
+  // };
+  // .get: es una forma de acceder a la base de datos
+  // collection:es un metodo que se usa para acceder a una coleccion especifica en la base de datos
+  // findOne es un método que se utiliza para encontrar un único documento que coincida
+  // con los criterios de búsqueda proporcionados.
+  // lo de adentro es de findone es lo que se busca, en este caso el email
+  
+  const db = await connect(); // Obtener la instancia de la base de datos
+  const collection = db.collection("users"); // Obtener la colección de usuarios
+  
+  // const collection = await connect().collection("users");
+  
+  const adminUserExists = await collection
+    .findOne({ email: adminEmail });
+  if (!adminUserExists) {
+    const adminUser = {
+      email: adminEmail,
+      password: bcrypt.hashSync(adminPassword, 10),
+      roles: "admin",
+    };
+    await collection.insertOne(adminUser);
+    console.log("Admin user created successfully.");
+  } else {
+    console.log("Admin user already exists.");
+  }
   // TODO: Create admin user
   // First, check if adminUser already exists in the database
   // If it doesn't exist, it needs to be saved
-
   next();
 };
-
 /*
  * Español:
  *
@@ -55,7 +69,6 @@ const initAdminUser = (app, next) => {
  * va pasando a través de las funciones, así como también la respuesta
  * (response).
  */
-
 /*
  * Português Brasileiro:
  *
@@ -82,23 +95,13 @@ const initAdminUser = (app, next) => {
  * forma, a requisição (request) passa através das funções, assim como a resposta
  * (response).
  */
-
 module.exports = (app, next) => {
-
-  app.get('/users', requireAdmin, getUsers);
-
-  app.get('/users/:uid', requireAuth, (req, resp) => {
-  });
-
-  app.post('/users', requireAdmin, (req, resp, next) => {
+  app.get("/users", requireAdmin, getUsers);
+  app.get("/users/:uid", requireAuth, (req, resp) => {});
+  app.post("/users", requireAdmin, (req, resp, next) => {
     // TODO: Implement the route to add new users
   });
-
-  app.put('/users/:uid', requireAuth, (req, resp, next) => {
-  });
-
-  app.delete('/users/:uid', requireAuth, (req, resp, next) => {
-  });
-
+  app.put("/users/:uid", requireAuth, (req, resp, next) => {});
+  app.delete("/users/:uid", requireAuth, (req, resp, next) => {});
   initAdminUser(app, next);
 };

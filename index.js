@@ -8,6 +8,8 @@ const pkg = require('./package.json');
 const { port, secret } = config;
 const app = express();
 
+const { connect } = require('./connect');
+
 app.set('config', config);
 app.set('pkg', pkg);
 
@@ -15,6 +17,8 @@ app.set('pkg', pkg);
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(authMiddleware(secret));
+
+connect();
 
 // Registrar rutas
 routes(app, (err) => {
