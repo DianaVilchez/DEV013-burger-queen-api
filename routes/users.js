@@ -1,10 +1,10 @@
 const bcrypt = require("bcrypt");
 const { connect } = require("../connect");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
-const { getUsers } = require("../controller/users");
+const { getUsers, createUser, deleteUser, findUserById, modifyUser } = require("../controller/users");
 // app:objeto de la aplicación Express
 const initAdminUser = async (app, next) => {
-  const { adminEmail, adminPassword } = app.get("config");
+  const { adminEmail, adminPassword, roles } = app.get("config");
   if (!adminEmail || !adminPassword) {
     return next();
   }
@@ -96,12 +96,11 @@ const initAdminUser = async (app, next) => {
  * (response).
  */
 module.exports = (app, next) => {
-  app.get("/users", requireAdmin, getUsers);
-  app.get("/users/:uid", requireAuth, (req, resp) => {});
-  app.post("/users", requireAdmin, (req, resp, next) => {
-    // TODO: Implement the route to add new users
-  });
-  app.put("/users/:uid", requireAuth, (req, resp, next) => {});
-  app.delete("/users/:uid", requireAuth, (req, resp, next) => {});
+  app.get("/users", /*requireAdmin,*/ getUsers);
+  console.log (getUsers);
+  app.get("/users/:uid", /*requireAuth,*/ findUserById);
+  app.post("/users", /*requireAdmin,*/ createUser);
+  app.put("/users/:uid",/* requireAuth,*/ modifyUser);
+  app.delete("/users/:uid", /*requireAuth,*/ deleteUser);
   initAdminUser(app, next);
 };

@@ -20,7 +20,7 @@ module.exports = (app, nextMain) => {
     const db =  await connect(); // Obtener la instancia de la base de datos
     const collection = db.collection("users"); 
     const userEmail = await collection.findOne({ email});
-    const userPassword = await collection.findOne({password});
+    // const userPassword = await collection.findOne({password});
     
 
     if (userEmail === null || userEmail === undefined){
