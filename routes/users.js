@@ -4,7 +4,7 @@ const { requireAuth, requireAdmin } = require("../middleware/auth");
 const { getUsers, createUser, deleteUser, findUserById, modifyUser } = require("../controller/users");
 // app:objeto de la aplicación Express
 const initAdminUser = async (app, next) => {
-  const { adminEmail, adminPassword, roles } = app.get("config");
+  const { adminEmail, adminPassword } = app.get("config");
   if (!adminEmail || !adminPassword) {
     return next();
   }
@@ -96,11 +96,11 @@ const initAdminUser = async (app, next) => {
  * (response).
  */
 module.exports = (app, next) => {
-  app.get("/users", /*requireAdmin,*/ getUsers);
+  app.get("/users", requireAdmin, getUsers);
   console.log (getUsers);
-  app.get("/users/:uid", /*requireAuth,*/ findUserById);
-  app.post("/users", /*requireAdmin,*/ createUser);
-  app.put("/users/:uid",/* requireAuth,*/ modifyUser);
-  app.delete("/users/:uid", /*requireAuth,*/ deleteUser);
+  app.get("/users/:uid", requireAuth, findUserById);
+  app.post("/users", requireAdmin, createUser);
+  app.put("/users/:uid",requireAuth, modifyUser);
+  app.delete("/users/:uid",requireAuth, deleteUser);
   initAdminUser(app, next);
 };
