@@ -3,10 +3,10 @@ const config = require("../config");
 const { connect } = require("../connect");
 
 const { secret } = config;
-// TODO: Authenticate the user
-// It is necessary to confirm if the email and password
-// match a user in the database
-// If they match, send an access token created with JWT
+// TODO: Autenticar al usuario
+// Es necesario confirmar si el correo electrónico y la contraseña
+// coincide con un usuario en la base de datos
+// Si coinciden, envía un token de acceso creado con JWT
 module.exports = (app, nextMain) => {
   app.post("/login", async (req, resp, next) => {
     const { password, email } = req.body;
@@ -30,7 +30,7 @@ module.exports = (app, nextMain) => {
     //   return resp.status(404).json({ message: "Email Incorrecto" });
     // }
     const token = jwt.sign(
-      { email },
+      { email, role:userEmail.role, uid :userEmail._id},
       secret,
       { expiresIn: "1h" }
       // console.log(secret),

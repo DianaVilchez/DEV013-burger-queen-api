@@ -1,3 +1,7 @@
+// TODO: Crear usuario administrador
+// Primero, verifica si adminUser ya existe en la base de datos
+// Si no existe, es necesario guardarlo.
+
 const bcrypt = require("bcrypt");
 const { connect } = require("../connect");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
@@ -8,11 +12,6 @@ const initAdminUser = async (app, next) => {
   if (!adminEmail || !adminPassword) {
     return next();
   }
-  // const adminUser = {
-  //   email: adminEmail,
-  //   password: bcrypt.hashSync(adminPassword, 10),
-  //   roles: "admin",
-  // };
   // .get: es una forma de acceder a la base de datos
   // collection:es un metodo que se usa para acceder a una coleccion especifica en la base de datos
   // findOne es un método que se utiliza para encontrar un único documento que coincida
@@ -30,16 +29,14 @@ const initAdminUser = async (app, next) => {
     const adminUser = {
       email: adminEmail,
       password: bcrypt.hashSync(adminPassword, 10),
-      roles: "admin",
+      role: "admin",
     };
     await collection.insertOne(adminUser);
     console.log("Admin user created successfully.");
   } else {
     console.log("Admin user already exists.");
   }
-  // TODO: Create admin user
-  // First, check if adminUser already exists in the database
-  // If it doesn't exist, it needs to be saved
+
   next();
 };
 /*
