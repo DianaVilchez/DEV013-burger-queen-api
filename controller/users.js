@@ -32,12 +32,12 @@ module.exports = {
       // const users = await collection.find({}).toArray();
       // resp.json(users);
 
-      if (!validationAdmin(req, resp)) {
-        return resp.status(404).send("No tiene acceso");
-      }
+      // if (!validationAdmin(req, resp)) {
+      //   return resp.status(404).send("No tiene acceso");
+      // }
       // Configurar la paginación
-      const page = parseInt(req.query.page, 10) || 1; // Página actual
-      const limit = parseInt(req.query.limit, 10) || 10; // Tamaño de página
+      const page = parseInt(req.query._page, 10) || 1; // Página actual
+      const limit = parseInt(req.query._limit, 10) || 10; // Tamaño de página
       const startIndex = (page - 1) * limit; // Índice de inicio
       const endIndex = page * limit; // Índice de fin
 
@@ -61,7 +61,7 @@ module.exports = {
       results.results = users.slice(startIndex, endIndex);
 
       // Enviar resultados al cliente
-      resp.status(200).json(results);
+      resp.status(200).json(results.results);
     } catch (error) {
       console.error("Error al obtener usuarios:", error);
       resp.status(500).json({ error: "Error interno del servidor" });
@@ -154,16 +154,20 @@ module.exports = {
     const db = await connect();
     const collection = db.collection("users");
     const { email, password, roles } = req.body;
-    const { uid } = req.params;
-    const founduser = collection.find((user) => user.uid === uid);
+    // const userUid = req.params.uid;
+    const { _id } = req.params;
+    const foundUser = await collection.findOne({ uid: _id });
+    console.log("founduser", foundUser);
 
     // if (!validationAdmin(req, resp)) {
     //   return resp.status(403).send("No tiene acceso");
     // }
-    if (founduser === founduser.uid) {
-      return resp.send(founduser).status(200).send("usuario encontrado");
-    }
-    return resp.status(404).send("usuario no registrado");
+    // if (!foundUser) {
+    //   return resp.status(404).send("usuario no registrado");
+    // //   .send("usuario encontrado");
+    // }
+    return resp.status(200).json(foundUser);
+    // return resp.status(404).send("usuario no registrado");
   },
   modifyUser: async (req, resp, next) => {
     //  debería fallar con 404 cuando el administrador no se encuentra (7 ms)
