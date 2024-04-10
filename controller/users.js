@@ -130,13 +130,15 @@ module.exports = {
       const collection = db.collection("users");
       // id del usuario que se va a eliminar
       const { uid } = req.params;
+      console.log( uid,"uid");
 
       const validationEmail = validationEmailUser(uid);
       // validar los identificadores
       const isValidObjectId = ObjectId.isValid(uid);
-
+      console.log(validationEmail,"validationEmail");
       let user;
       if (validationEmail) {
+        
         user = await collection.findOne({ email: uid });
       } else if (isValidObjectId) {
         user = await collection.findOne({ _id: new ObjectId(uid) });
@@ -152,13 +154,19 @@ module.exports = {
       const loggedInUserId = req.uid;
       // es propietaria y administrador
       // si id de la usuarioencontrada!=usuarialogeada y si no es administradora(inició sesion)
-      if (user._id !== loggedInUserId && !authAdmin) {
+      if (user._id.toString() !== loggedInUserId && !authAdmin) {
         return resp
           .status(403)
           .json({ error: "No tienes autorización" });
       }
-      await collection.deleteOne({ _id: uid });
-      resp.status(200).json({ message: "Usuario eliminado correctamente" });
+      const result = await collection.deleteOne({ _id: user._id });
+      console.log({ _id: user._id }, "usuario eliminado" );
+      if (result.deletedCount === 1) {
+        return resp.status(200).json({ message: "Usuario eliminado correctamente" });
+      }
+      return resp.status(500).json({ error: "No se pudo eliminar el usuario" });
+
+      // resp.status(200).json({ message: "Usuario eliminado correctamente" });
       // const findUser = await collection.findOne({ _id:uid });
 
       // if (findUser === null) {
@@ -195,6 +203,7 @@ module.exports = {
       const validationEmail = validationEmailUser(uid);
       // validar los identificadores
       const isValidObjectId = ObjectId.isValid(uid);
+      console.log(validationEmail,"validationEmail");;
 
       let user;
       if (validationEmail) {
