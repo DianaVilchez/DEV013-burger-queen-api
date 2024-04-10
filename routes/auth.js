@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const config = require("../config");
 const { connect } = require("../connect");
+const bcrypt = require("bcrypt");
 
 const { secret } = config;
 // TODO: Autenticar al usuario
@@ -12,7 +13,7 @@ module.exports = (app, nextMain) => {
     const { password, email } = req.body;
     if (!email || !password) {
       console.log("Falta informacion");
-      return next(400);
+      return resp.status(400).json({error:"Datos no ingresados"});
     }
     // La función sign es parte de la librería JWT y se utiliza para firmar un token JWT
     // utilizando un secreto o clave privada,toma tres argumentos:Payload,clave secreta y opciones
@@ -22,21 +23,31 @@ module.exports = (app, nextMain) => {
     const userEmail = await collection.findOne({ email });
     // const userPassword = await collection.findOne({password});
 
-    if (userEmail === null || userEmail === undefined) {
+    if (!userEmail) {
       return resp.status(404).json({ message: "Email Incorrecto" });
     }
-
-    // if (!userPassword){
-    //   return resp.status(404).json({ message: "Email Incorrecto" });
+    const { _id, role } = userEmail;
+    // const validationPassword = await bcrypt.compare(password, userEmail.password)
+    // if (!validationPassword) {
+    //   return resp.status(404).json({ message: "password incorrecto" });
     // }
     const token = jwt.sign(
-      { email, role:userEmail.role, uid :userEmail._id},
+      { email, 
+        role:userEmail.role, 
+        uid:userEmail._id},
       secret,
       { expiresIn: "1h" }
       // console.log(secret),
     );
     console.log("Token JWT creado exitosamente");
-    return resp.status(200).json({ token });
+    return resp.status(200).json({
+      token: token,
+      user: {
+        id: _id,
+        email: email,
+        role: role,
+      },
+    });
 
     // next();
   });

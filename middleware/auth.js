@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { connect } = require("../connect");
+// const { ObjectId } = require('mongodb')
+
 
 module.exports = (secret) => (req, resp, next) => {
   const { authorization } = req.headers;
@@ -19,7 +21,6 @@ module.exports = (secret) => (req, resp, next) => {
     if (err) {
       return next(403);
     }
-
     // TODO: Verify user identity using `decodeToken.uid`
     const { uid } = decodedToken;
 
@@ -28,6 +29,11 @@ module.exports = (secret) => (req, resp, next) => {
 
     const user = await collection.findOne({ _id: uid });
     req.user = decodedToken;
+
+    if (req.user.role === 'admin') {
+      req.isAdmin = true;
+      console.log(req.isAdmin, "admin")
+    }
     console.log(user)
     return next();
   });

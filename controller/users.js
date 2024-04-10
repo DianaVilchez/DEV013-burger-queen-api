@@ -1,25 +1,30 @@
 const { connect } = require("../connect");
 const bcrypt = require("bcrypt");
+const { ObjectId } = require("mongodb");
+const { isAdmin } = require("../middleware/auth");
 // const validator = require('validator');
 // const users = require('../routes/users');
 
 // Declara un array vacío para almacenar los usuarios
 // let users = [];
-const validationAdmin = (req, resp) => {
-  if (req.user.roles !== "admin") {
-    return false;
-    // O return resp.status(403).send('No tiene acceso'); si deseas manejarlo directamente aquí
-  }
-  return true;
-};
-
-const validationWaiter = (req, resp) => {
-  if (req.user.roles === "waiter") {
-    return false;
-    // O return resp.status(403).send('No tiene acceso'); si deseas manejarlo directamente aquí
-  }
-  return true;
-};
+// const validationAdmin = (req, resp) => {
+//   if (req.role !== "admin") {
+//     return false;
+//     // O return resp.status(403).send('No tiene acceso'); si deseas manejarlo directamente aquí
+//   }
+//   return true;
+// };
+function validationEmailUser(email) {
+  const validation = /^\w+([.-_+]?\w+)*@\w+([.-]?\w+)*(\.\w{2,10})+$/;
+  return validation.test(email);
+}
+// const validationWaiter = (req, resp) => {
+//   if (req.role === "waiter") {
+//     return false;
+//     // O return resp.status(403).send('No tiene acceso'); si deseas manejarlo directamente aquí
+//   }
+//   return true;
+// };
 
 module.exports = {
   getUsers: async (req, resp, next) => {
@@ -80,8 +85,8 @@ module.exports = {
         return resp.status(400).send("Falta llenar datos");
       }
       // validar el email y contraseña
-      const validation = /^\w+([.-_+]?\w+)*@\w+([.-]?\w+)*(\.\w{2,10})+$/;
-      if (!validation.test(email)) {
+      const validationEmail = validationEmailUser(email);
+      if (!validationEmail) {
         return resp.status(400).send("El formato del email no es válido");
       }
       if (password.trim().length < 4) {
@@ -120,27 +125,57 @@ module.exports = {
     // √ debería fallar con 404 cuando el administrador no se encuentra (4 ms)
     // × debería eliminar el propio usuario (4 ms)
     // × debería eliminar a otro usuario como administrador (3 ms)
-    const db = await connect();
-    const collection = db.collection("users");
-    const { email, password, roles } = req.body;
-    // id del usuario que se va a eliminar
-    const { uid } = req.params;
-    const findUser = collection.find((user) => user.uid === uid);
- 
-    if (!validationAdmin(req, resp)) {
-      return resp.status(404).send("No tiene acceso");
+    try {
+      const db = await connect();
+      const collection = db.collection("users");
+      // id del usuario que se va a eliminar
+      const { uid } = req.params;
+
+      const validationEmail = validationEmailUser(uid);
+      // validar los identificadores
+      const isValidObjectId = ObjectId.isValid(uid);
+
+      let user;
+      if (validationEmail) {
+        user = await collection.findOne({ email: uid });
+      } else if (isValidObjectId) {
+        user = await collection.findOne({ _id: new ObjectId(uid) });
+      } else {
+        return resp.status(400).json({ error: "Usuario invalido" });
+      }
+
+      if (!user) {
+        return resp.status(404).json({ msg: "Usuario no encontrado" });
+      }
+      const authAdmin = req.isAdmin;
+      // usuario que inició sesión
+      const loggedInUserId = req.uid;
+      // es propietaria y administrador
+      // si id de la usuarioencontrada!=usuarialogeada y si no es administradora(inició sesion)
+      if (user._id !== loggedInUserId && !authAdmin) {
+        return resp
+          .status(403)
+          .json({ error: "No tienes autorización" });
+      }
+      await collection.deleteOne({ _id: uid });
+      resp.status(200).json({ message: "Usuario eliminado correctamente" });
+      // const findUser = await collection.findOne({ _id:uid });
+
+      // if (findUser === null) {
+      //   resp.status(404).send("usuario no registrado");
+      // }
+      // if (!validationAdmin(req, resp)) {
+      //   return resp.status(404).send("No tiene acceso");
+      // }
+      // No es administrador
+      // if (req.role !== "admin") {
+      //   if (uid !== req.uid) {
+      //     return resp.status(403).send("No eres propietario");
+      //   }
+      // }
+    } catch (error) {
+      resp.status(500).send("Error del servidor");
     }
-    // No es administrador
-    if (!validationWaiter(req, resp)) {
-      return resp.send("No tiene acceso");
-    }
-    if (uid !== findUser.uid) {
-      resp.status(404).send("usuario no registrado");
-    } else {
-      resp.status(404).send("usuario no registrado");
-    }
-    await collection.deleteUser({ _id: uid });
-    resp.status(200).json({ message: "Usuario eliminado correctamente" });
   },
 
   findUserById: async (req, resp, next) => {
@@ -151,24 +186,60 @@ module.exports = {
     // should fail with 404 when admin and not found (8 ms)
     // × should get own user (10 ms)
     // × should get other user as admin (11 ms)
-    const db = await connect();
-    const collection = db.collection("users");
-    const { email, password, roles } = req.body;
-    // const userUid = req.params.uid;
-    const { _id } = req.params;
-    const foundUser = await collection.findOne({ uid: _id });
-    console.log("founduser", foundUser);
+    try {
+      const db = await connect();
+      const collection = db.collection("users");
 
-    // if (!validationAdmin(req, resp)) {
-    //   return resp.status(403).send("No tiene acceso");
-    // }
-    // if (!foundUser) {
-    //   return resp.status(404).send("usuario no registrado");
-    // //   .send("usuario encontrado");
-    // }
-    return resp.status(200).json(foundUser);
-    // return resp.status(404).send("usuario no registrado");
+      const { uid } = req.params;
+
+      const validationEmail = validationEmailUser(uid);
+      // validar los identificadores
+      const isValidObjectId = ObjectId.isValid(uid);
+
+      let user;
+      if (validationEmail) {
+        user = await collection.findOne({ email: uid });
+      } else if (isValidObjectId) {
+        user = await collection.findOne({ _id: new ObjectId(uid) });
+      } else {
+        return resp.status(400).json({ error: "Usuario invalido" });
+      }
+
+      if (!user) {
+        return resp.status(404).json({ msg: "Userio no encontrado" });
+      }
+
+      const authAdmin = req.isAdmin;
+      // usuario que inició sesión
+      const loggedInUserId = req.uid;
+
+      console.log(user._id.toString() !== loggedInUserId);
+      console.log(!authAdmin);
+      // es propietaria y administrador
+      // si id de la usuarioencontrada != usuarialogeada y si no es administradora(inició sesion)
+      if (user._id.toString() !== loggedInUserId && !authAdmin) {
+        return resp
+          .status(403)
+          .json({ error: "No tienes permisos" });
+      }
+      resp.json(user);
+    } catch (error) {
+      resp.status(500).json({ error: "Error del servidor" });
+    }
   },
+  // const foundUser = await collection.findOne({ _id: uid });
+  // console.log("founduser", foundUser);
+
+  // if (!validationAdmin(req, resp)) {
+  //   return resp.status(403).send("No tiene acceso");
+  // }
+  // if (!foundUser) {
+  //   return resp.status(404).send("usuario no registrado");
+  //   //   .send("usuario encontrado");
+  // }
+  // return resp.status(200).json( foundUser );
+  // // return resp.status(404).send("usuario no registrado");
+
   modifyUser: async (req, resp, next) => {
     //  debería fallar con 404 cuando el administrador no se encuentra (7 ms)
     // × debería fallar con 400 cuando no hay accesorios para actualizar (7 ms)
