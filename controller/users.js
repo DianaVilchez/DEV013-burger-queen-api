@@ -130,20 +130,19 @@ module.exports = {
       const collection = db.collection("users");
       // id del usuario que se va a eliminar
       const { uid } = req.params;
-      console.log( uid,"uid");
+      console.log(uid, "uid");
 
       const validationEmail = validationEmailUser(uid);
       // validar los identificadores
       const isValidObjectId = ObjectId.isValid(uid);
-      console.log(validationEmail,"validationEmail");
+      console.log(validationEmail, "validationEmail");
       let user;
       if (validationEmail) {
-        
         user = await collection.findOne({ email: uid });
       } else if (isValidObjectId) {
         user = await collection.findOne({ _id: new ObjectId(uid) });
       } else {
-        return resp.status(400).json({ error: "Usuario invalido" });
+        return resp.status(403).json({ error: "Usuario invalido" });
       }
 
       if (!user) {
@@ -155,35 +154,31 @@ module.exports = {
       // es propietaria y administrador
       // si id de la usuarioencontrada!=usuarialogeada y si no es administradora(inició sesion)
       if (user._id.toString() !== loggedInUserId && !authAdmin) {
-        return resp
-          .status(403)
-          .json({ error: "No tienes autorización" });
+        return resp.status(403).json({ error: "No tienes autorización" });
       }
-      const result = await collection.deleteOne({ _id: user._id });
-      console.log({ _id: user._id }, "usuario eliminado" );
-      if (result.deletedCount === 1) {
-        return resp.status(200).json({ message: "Usuario eliminado correctamente" });
-      }
-      return resp.status(500).json({ error: "No se pudo eliminar el usuario" });
+      await collection.deleteOne({ _id: user._id });
+      console.log({ _id: user._id }, "usuario eliminado");
 
-      // resp.status(200).json({ message: "Usuario eliminado correctamente" });
-      // const findUser = await collection.findOne({ _id:uid });
-
-      // if (findUser === null) {
-      //   resp.status(404).send("usuario no registrado");
-      // }
-      // if (!validationAdmin(req, resp)) {
-      //   return resp.status(404).send("No tiene acceso");
-      // }
-      // No es administrador
-      // if (req.role !== "admin") {
-      //   if (uid !== req.uid) {
-      //     return resp.status(403).send("No eres propietario");
-      //   }
-      // }
+      resp.status(200).json(user);
     } catch (error) {
       resp.status(500).send("Error del servidor");
     }
+
+    // resp.status(200).json({ message: "Usuario eliminado correctamente" });
+    // const findUser = await collection.findOne({ _id:uid });
+
+    // if (findUser === null) {
+    //   resp.status(404).send("usuario no registrado");
+    // }
+    // if (!validationAdmin(req, resp)) {
+    //   return resp.status(404).send("No tiene acceso");
+    // }
+    // No es administrador
+    // if (req.role !== "admin") {
+    //   if (uid !== req.uid) {
+    //     return resp.status(403).send("No eres propietario");
+    //   }
+    // }
   },
 
   findUserById: async (req, resp, next) => {
@@ -203,7 +198,7 @@ module.exports = {
       const validationEmail = validationEmailUser(uid);
       // validar los identificadores
       const isValidObjectId = ObjectId.isValid(uid);
-      console.log(validationEmail,"validationEmail");;
+      console.log(validationEmail, "validationEmail");
 
       let user;
       if (validationEmail) {
@@ -211,7 +206,7 @@ module.exports = {
       } else if (isValidObjectId) {
         user = await collection.findOne({ _id: new ObjectId(uid) });
       } else {
-        return resp.status(400).json({ error: "Usuario invalido" });
+        return resp.status(403).json({ error: "Usuario invalido" });
       }
 
       if (!user) {
@@ -227,11 +222,9 @@ module.exports = {
       // es propietaria y administrador
       // si id de la usuarioencontrada != usuarialogeada y si no es administradora(inició sesion)
       if (user._id.toString() !== loggedInUserId && !authAdmin) {
-        return resp
-          .status(403)
-          .json({ error: "No tienes permisos" });
+        return resp.status(403).json({ error: "No tienes permisos" });
       }
-      resp.json(user);
+      resp.status(200).json(user);
     } catch (error) {
       resp.status(500).json({ error: "Error del servidor" });
     }
@@ -257,22 +250,59 @@ module.exports = {
     try {
       const db = await connect();
       const collection = db.collection("users");
-      const { email, password, roles } = req.params;
-      const { body } = req;
       const { uid } = req.params;
-      const userUpdate = collection.find((user) => user.uid === uid);
+      const { email, password, role } = req.body;
 
-      if (!validationAdmin(req, resp)) {
-        return resp.status(403).send("No tiene acceso");
+      const validationEmail = validationEmailUser(uid);
+      // validar los identificadores
+      const isValidObjectId = ObjectId.isValid(uid);
+      console.log(validationEmail, "validationEmail");
+
+      let user;
+      if (validationEmail) {
+        user = await collection.findOne({ email: uid });
+      } else if (isValidObjectId) {
+        user = await collection.findOne({ _id: new ObjectId(uid) });
+      } else {
+        return resp.status(403).json({ error: "Usuario invalido" });
       }
-      if (userUpdate !== userUpdate.uid) {
-        return resp.status(404).send("Usuario no registrado");
+
+      if (!user) {
+        return resp.status(404).json({ msg: "Userio no encontrado" });
       }
-      if (password === password.uid) {
-        return resp.status(400).send("No hay datos para actualizar");
+
+      const authAdmin = req.isAdmin;
+      // usuario que inició sesión
+      const loggedInUserId = req.uid;
+
+      console.log(user._id.toString() !== loggedInUserId);
+      console.log(!authAdmin);
+      // es propietaria y administrador
+      // si id de la usuarioencontrada != usuarialogeada y si no es administradora(inició sesion)
+      if (user._id.toString() !== loggedInUserId && !authAdmin) {
+        return resp.status(403).json({ error: "No tienes permisos" });
       }
-      await userUpdate.update(body);
-      resp.json(userUpdate);
+      if (!email && !password && !role) {
+        return resp
+          .status(400)
+          .json({ error: "No se han proporcionado datos para actualizar" });
+      }
+      // Verificar si hay cambios para actualizar
+      if (req.body.email && req.body.email !== user.email) {
+        user.email = req.body.email;
+      }
+      if (req.body.password && req.body.password !== user.password) {
+        user.password = req.body.password;
+      }
+      if (req.body.role && req.body.role !== user.role) {
+        user.role = req.body.role;
+      }
+
+      // Guardar los cambios en la base de datos solo si hay modificaciones
+      await collection.updateOne({ _id: new ObjectId(uid) }, { $set: user });
+
+      // Responder con el usuario modificado
+      resp.status(200).json(user);
     } catch (error) {
       console.error("Error al obtener usuarios:", error);
       resp.status(500).json({ error: "Error interno del servidor" });
