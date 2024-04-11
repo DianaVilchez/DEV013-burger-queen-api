@@ -138,7 +138,7 @@ module.exports = {
       console.log(validationEmail, "validationEmail");
       let user;
       if (validationEmail) {
-        user = await collection.findOne({ email: uid });
+        user = await collection.findOne({ email: req.params.uid });
       } else if (isValidObjectId) {
         user = await collection.findOne({ _id: new ObjectId(uid) });
       } else {
@@ -150,16 +150,21 @@ module.exports = {
       }
       const authAdmin = req.isAdmin;
       // usuario que inició sesión
-      const loggedInUserId = req.uid;
+      const loggedInUserId = req.params.uid;
+      console.log(user._id.toString() !== loggedInUserId,"x");
+      console.log(authAdmin,"is admin");
+      console.log(loggedInUserId,"loggedInUserId");
+      console.log(user._id.toString(),"user._id");
       // es propietaria y administrador
       // si id de la usuarioencontrada!=usuarialogeada y si no es administradora(inició sesion)
-      if (user._id.toString() !== loggedInUserId && !authAdmin) {
+      
+      if ((user.email !== loggedInUserId && user._id.toString() !== loggedInUserId) && !authAdmin) {
         return resp.status(403).json({ error: "No tienes autorización" });
       }
-      await collection.deleteOne({ _id: user._id });
+      await collection.deleteOne(user);
       console.log({ _id: user._id }, "usuario eliminado");
 
-      resp.status(200).json(user);
+      return resp.status(200).json(user);
     } catch (error) {
       resp.status(500).send("Error del servidor");
     }
@@ -202,7 +207,7 @@ module.exports = {
 
       let user;
       if (validationEmail) {
-        user = await collection.findOne({ email: uid });
+        user = await collection.findOne({ email: req.params.uid });
       } else if (isValidObjectId) {
         user = await collection.findOne({ _id: new ObjectId(uid) });
       } else {
@@ -215,16 +220,19 @@ module.exports = {
 
       const authAdmin = req.isAdmin;
       // usuario que inició sesión
-      const loggedInUserId = req.uid;
+      const loggedInUserId = req.params.uid;
 
-      console.log(user._id.toString() !== loggedInUserId);
-      console.log(!authAdmin);
+      console.log(user._id.toString() !== loggedInUserId,"x");
+      console.log(authAdmin,"is admin");
+      console.log(loggedInUserId,"loggedInUserId");
+      console.log(user._id.toString(),"user._id");
       // es propietaria y administrador
       // si id de la usuarioencontrada != usuarialogeada y si no es administradora(inició sesion)
-      if (user._id.toString() !== loggedInUserId && !authAdmin) {
+      if  ((user.email !== loggedInUserId && user._id.toString() !== loggedInUserId) && !authAdmin) {
+        console.log(user._id.toString() !== loggedInUserId && !authAdmin,"y")
         return resp.status(403).json({ error: "No tienes permisos" });
       }
-      resp.status(200).json(user);
+      return resp.status(200).json(user);
     } catch (error) {
       resp.status(500).json({ error: "Error del servidor" });
     }
