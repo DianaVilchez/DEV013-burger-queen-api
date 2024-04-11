@@ -296,11 +296,20 @@ module.exports = {
       if (user.email !== loggedInUserId && user._id.toString() !== loggedInUserId && !authAdmin) {
         return resp.status(403).json({ error: "No tienes permisos" });
       }
+      
       if (!email && !password && !role) {
         return resp
           .status(400)
           .json({ error: "No se han proporcionado datos para actualizar" });
       }
+      console.log("user.role", user.role);
+      console.log("user.role !== admin",user.role !== "admin")
+      console.log ("req.body.role",req.body.role)
+      if (user.role !== "admin") {
+          if (req.body.role) {
+            return resp.status(403).json({ error: "No tienes permisos para cambiar rol" });
+          }
+        }
       // Verificar si hay cambios para actualizar
       if (req.body.email && req.body.email !== user.email) {
         user.email = req.body.email;
@@ -319,7 +328,8 @@ module.exports = {
       }
         const hashedPassword = await bcrypt.hash(req.body.password, 10);
         user.password = hashedPassword;
-      
+
+        
       if (req.body.role && req.body.role !== user.role) {
         user.role = req.body.role;
       }
