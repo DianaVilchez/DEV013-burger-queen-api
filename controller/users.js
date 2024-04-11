@@ -103,7 +103,7 @@ module.exports = {
       }
       const creatingUser = await collection.insertOne({
         email: email,
-        password: password,
+        password: bcrypt.hashSync(password, 10),
         role: role,
       });
       // Utiliza insertedId para obtener el _id del usuario creado
@@ -151,14 +151,18 @@ module.exports = {
       const authAdmin = req.isAdmin;
       // usuario que inició sesión
       const loggedInUserId = req.params.uid;
-      console.log(user._id.toString() !== loggedInUserId,"x");
-      console.log(authAdmin,"is admin");
-      console.log(loggedInUserId,"loggedInUserId");
-      console.log(user._id.toString(),"user._id");
+      console.log(user._id.toString() !== loggedInUserId, "x");
+      console.log(authAdmin, "is admin");
+      console.log(loggedInUserId, "loggedInUserId");
+      console.log(user._id.toString(), "user._id");
       // es propietaria y administrador
       // si id de la usuarioencontrada!=usuarialogeada y si no es administradora(inició sesion)
-      
-      if ((user.email !== loggedInUserId && user._id.toString() !== loggedInUserId) && !authAdmin) {
+
+      if (
+        user.email !== loggedInUserId &&
+        user._id.toString() !== loggedInUserId &&
+        !authAdmin
+      ) {
         return resp.status(403).json({ error: "No tienes autorización" });
       }
       await collection.deleteOne(user);
@@ -222,15 +226,15 @@ module.exports = {
       // usuario que inició sesión
       const loggedInUserId = req.params.uid;
 
-      console.log(user._id.toString() !== loggedInUserId,"x");
-      console.log(authAdmin,"is admin");
-      console.log(loggedInUserId,"loggedInUserId");
-      console.log(user._id.toString(),"user._id");
+      console.log(user._id.toString() !== loggedInUserId, "x");
+      console.log(authAdmin, "is admin");
+      console.log(loggedInUserId, "loggedInUserId");
+      console.log(user._id.toString(), "user._id");
       // es propietaria y administrador
       // si id de la usuarioencontrada != usuarialogeada y si no es administradora(inició sesion)
-      if  ((user.email !== loggedInUserId && user._id.toString() !== loggedInUserId) && !authAdmin) {
-        console.log(user._id.toString() !== loggedInUserId && !authAdmin,"y")
-        return resp.status(403).json({ error: "No tienes permisos" });
+      if (user.email !== loggedInUserId && user._id.toString() !== loggedInUserId && !authAdmin) {
+        console.log(user._id.toString() !== loggedInUserId && !authAdmin, "y");
+        return resp.status(403).json({ error: "No tienes permisso" });
       }
       return resp.status(200).json(user);
     } catch (error) {
@@ -281,13 +285,15 @@ module.exports = {
 
       const authAdmin = req.isAdmin;
       // usuario que inició sesión
-      const loggedInUserId = req.uid;
+      const loggedInUserId = req.params.uid;
 
+      console.log(user.email !== loggedInUserId);
       console.log(user._id.toString() !== loggedInUserId);
-      console.log(!authAdmin);
+      console.log(loggedInUserId);
+      console.log("isadmin",!authAdmin);
       // es propietaria y administrador
       // si id de la usuarioencontrada != usuarialogeada y si no es administradora(inició sesion)
-      if (user._id.toString() !== loggedInUserId && !authAdmin) {
+      if (user.email !== loggedInUserId && user._id.toString() !== loggedInUserId && !authAdmin) {
         return resp.status(403).json({ error: "No tienes permisos" });
       }
       if (!email && !password && !role) {
@@ -299,15 +305,26 @@ module.exports = {
       if (req.body.email && req.body.email !== user.email) {
         user.email = req.body.email;
       }
-      if (req.body.password && req.body.password !== user.password) {
-        user.password = req.body.password;
+      // if (req.body.password && req.body.password !== user.password) {
+      //   user.password = req.body.password;
+      // }
+      console.log("no hay datos iguales", req.body.password !== user.password);
+      console.log("req.body.password", req.body.password);
+      console.log("user.password", user.password);
+      console.log("compare", await bcrypt.compare(req.body.password, user.password));
+      if (await bcrypt.compare(req.body.password, user.password)) {
+        return resp
+          .status(400)
+          .json({ error: "No hay datos nuevos para la contraseña" });
       }
+        const hashedPassword = await bcrypt.hash(req.body.password, 10);
+        user.password = hashedPassword;
+      
       if (req.body.role && req.body.role !== user.role) {
         user.role = req.body.role;
       }
-
       // Guardar los cambios en la base de datos solo si hay modificaciones
-      await collection.updateOne({ _id: new ObjectId(uid) }, { $set: user });
+      await collection.updateOne({ _id: user._id }, { $set: user });
 
       // Responder con el usuario modificado
       resp.status(200).json(user);

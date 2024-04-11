@@ -27,10 +27,14 @@ module.exports = (app, nextMain) => {
       if (!userEmail) {
         return resp.status(404).json({ message: "Email Incorrecto" });
       }
-      // const validationPassword = await bcrypt.compare(password, userEmail.password);
-      // if (!validationPassword) {
-      //   return resp.status(404).json({ message: "password incorrecto" });
-      // }
+      console.log("passwordLogin",password);
+      console.log("passwordsystem",userEmail.password);
+
+      const validationPassword = await bcrypt.compare(password, userEmail.password);
+      console.log("validationPassword",validationPassword);
+      if (!validationPassword) {
+        return resp.status(404).json({ message: "password incorrecto" });
+      }
       const { _id, role } = userEmail;
       // if (!(await bcrypt.compare(password, userEmail.password))) {
       //   return resp.status(404).json({ error: "Credenciales no coinciden" });
