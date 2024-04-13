@@ -29,7 +29,7 @@ module.exports = (secret) => (req, resp, next) => {
 
     const user = await collection.findOne({ _id: uid });
     req.user = decodedToken;
-
+    // validacion de administrador
     if (req.user.role === 'admin') {
       req.isAdmin = true;
       console.log(req.isAdmin, "admin")

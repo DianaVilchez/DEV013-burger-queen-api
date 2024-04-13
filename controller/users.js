@@ -1,31 +1,11 @@
 const { connect } = require("../connect");
 const bcrypt = require("bcrypt");
 const { ObjectId } = require("mongodb");
-const { isAdmin } = require("../middleware/auth");
-// const validator = require('validator');
-// const users = require('../routes/users');
-
-// Declara un array vacío para almacenar los usuarios
-// let users = [];
-// const validationAdmin = (req, resp) => {
-//   if (req.role !== "admin") {
-//     return false;
-//     // O return resp.status(403).send('No tiene acceso'); si deseas manejarlo directamente aquí
-//   }
-//   return true;
-// };
+// validación de correo electronico con (.com)
 function validationEmailUser(email) {
   const validation = /^\w+([.-_+]?\w+)*@\w+([.-]?\w+)*(\.\w{2,10})+$/;
   return validation.test(email);
 }
-// const validationWaiter = (req, resp) => {
-//   if (req.role === "waiter") {
-//     return false;
-//     // O return resp.status(403).send('No tiene acceso'); si deseas manejarlo directamente aquí
-//   }
-//   return true;
-// };
-
 module.exports = {
   getUsers: async (req, resp, next) => {
     // TODO: Implementar la función necesaria para obtener la colección o tabla de usuarios
@@ -33,13 +13,6 @@ module.exports = {
       const db = await connect(); // Obtener la instancia de la base de datos
       const collection = db.collection("users");
 
-      // // Devolver todos los usuarios-Recupera todos los usuarios
-      // const users = await collection.find({}).toArray();
-      // resp.json(users);
-
-      // if (!validationAdmin(req, resp)) {
-      //   return resp.status(404).send("No tiene acceso");
-      // }
       // Configurar la paginación
       const page = parseInt(req.query._page, 10) || 1; // Página actual
       const limit = parseInt(req.query._limit, 10) || 10; // Tamaño de página
@@ -73,10 +46,7 @@ module.exports = {
     }
   },
   createUser: async (req, resp, next) => {
-    // should create new user (173 ms)
-    // should create new admin user (183 ms)
-    // should fail with 403 when user is already registered
-    try {
+   try {
       const db = await connect();
       const collection = db.collection("users");
       const { email, password, role } = req.body;
@@ -120,11 +90,6 @@ module.exports = {
   },
 
   deleteUser: async (req, resp, next) => {
-    // √ debería fallar con 401 cuando no hay autenticación (6 ms)
-    // × debería fallar con 403 cuando no es propietario ni administrador (24 ms)
-    // √ debería fallar con 404 cuando el administrador no se encuentra (4 ms)
-    // × debería eliminar el propio usuario (4 ms)
-    // × debería eliminar a otro usuario como administrador (3 ms)
     try {
       const db = await connect();
       const collection = db.collection("users");
@@ -150,17 +115,16 @@ module.exports = {
       }
       const authAdmin = req.isAdmin;
       // usuario que inició sesión
-      const loggedInUserId = req.params.uid;
-      console.log(user._id.toString() !== loggedInUserId, "x");
+      const queryingUser = req.params.uid;
+      console.log(user._id.toString() !== queryingUser, "x");
       console.log(authAdmin, "is admin");
-      console.log(loggedInUserId, "loggedInUserId");
+      console.log(queryingUser, "queryingUser");
       console.log(user._id.toString(), "user._id");
-      // es propietaria y administrador
-      // si id de la usuarioencontrada!=usuarialogeada y si no es administradora(inició sesion)
 
+      // si no es propietario ni admin
       if (
-        user.email !== loggedInUserId &&
-        user._id.toString() !== loggedInUserId &&
+        req.user.email !== queryingUser &&
+        req.user._id.toString() !== queryingUser &&
         !authAdmin
       ) {
         return resp.status(403).json({ error: "No tienes autorización" });
@@ -191,13 +155,6 @@ module.exports = {
   },
 
   findUserById: async (req, resp, next) => {
-    // 403 el que intenta acceder no es admin
-    // 401 cuando no hay autenticacion
-    // 404 id no encontrado por que no esta registrado
-
-    // should fail with 404 when admin and not found (8 ms)
-    // × should get own user (10 ms)
-    // × should get other user as admin (11 ms)
     try {
       const db = await connect();
       const collection = db.collection("users");
@@ -209,57 +166,60 @@ module.exports = {
       const isValidObjectId = ObjectId.isValid(uid);
       console.log(validationEmail, "validationEmail");
 
-      let user;
+      let userParams;
       if (validationEmail) {
-        user = await collection.findOne({ email: req.params.uid });
+        userParams = await collection.findOne({ email: req.params.uid });
       } else if (isValidObjectId) {
-        user = await collection.findOne({ _id: new ObjectId(uid) });
+        userParams = await collection.findOne({ _id: new ObjectId(uid) });
       } else {
         return resp.status(403).json({ error: "Usuario invalido" });
       }
-
-      if (!user) {
+      console.log("y1")
+      if (!userParams) {
         return resp.status(404).json({ msg: "Userio no encontrado" });
       }
-
+console.log("y2")
       const authAdmin = req.isAdmin;
+      console.log("x1")
       // usuario que inició sesión
-      const loggedInUserId = req.params.uid;
+      const queryingUser = req.params.uid;
+      console.log("x2")
 
-      console.log(user._id.toString() !== loggedInUserId, "x");
+      console.log(userParams._id.toString() !== queryingUser, "x");
       console.log(authAdmin, "is admin");
-      console.log(loggedInUserId, "loggedInUserId");
-      console.log(user._id.toString(), "user._id");
+      console.log(queryingUser, "queryingUser");
+      console.log(userParams._id.toString(), "user._id");
+      // console.log(req.user)
+      console.log(req.user._id, "req.user._id");
+      console.log(req.user.email, "req.user.email");
+
       // es propietaria y administrador
       // si id de la usuarioencontrada != usuarialogeada y si no es administradora(inició sesion)
-      if (user.email !== loggedInUserId && user._id.toString() !== loggedInUserId && !authAdmin) {
-        console.log(user._id.toString() !== loggedInUserId && !authAdmin, "y");
-        return resp.status(403).json({ error: "No tienes permisso" });
+      console.log("y3")     
+      if (
+        req.user.email !== queryingUser &&
+        req.user._id.toString() !== queryingUser &&
+        !authAdmin
+      ) {
+        console.log(
+          req.user.email !== queryingUser &&
+            req.user._id.toString() !== queryingUser &&
+            !authAdmin,
+          "y"
+        );
+        return resp.status(403).json({ error: "No tienes permisos" });
       }
-      return resp.status(200).json(user);
+      console.log("y4")
+
+      return resp.status(200).json(userParams);
     } catch (error) {
       resp.status(500).json({ error: "Error del servidor" });
     }
   },
-  // const foundUser = await collection.findOne({ _id: uid });
-  // console.log("founduser", foundUser);
-
-  // if (!validationAdmin(req, resp)) {
-  //   return resp.status(403).send("No tiene acceso");
-  // }
-  // if (!foundUser) {
-  //   return resp.status(404).send("usuario no registrado");
-  //   //   .send("usuario encontrado");
-  // }
-  // return resp.status(200).json( foundUser );
-  // // return resp.status(404).send("usuario no registrado");
 
   modifyUser: async (req, resp, next) => {
-    //  debería fallar con 404 cuando el administrador no se encuentra (7 ms)
-    // × debería fallar con 400 cuando no hay accesorios para actualizar (7 ms)
-    // × debe actualizar el usuario cuando tenga datos propios (cambio de contraseña) (7 ms)
-    // × debería actualizar el usuario cuando sea administrador (7 ms)
     try {
+      console.log("decotoken", req.user);
       const db = await connect();
       const collection = db.collection("users");
       const { uid } = req.params;
@@ -285,51 +245,57 @@ module.exports = {
 
       const authAdmin = req.isAdmin;
       // usuario que inició sesión
-      const loggedInUserId = req.params.uid;
+      const queryingUser = req.params.uid;
 
-      console.log(user.email !== loggedInUserId);
-      console.log(user._id.toString() !== loggedInUserId);
-      console.log(loggedInUserId);
-      console.log("isadmin",!authAdmin);
-      // es propietaria y administrador
+      console.log(user.email !== queryingUser);
+      console.log(user._id.toString() !== queryingUser);
+      console.log(queryingUser);
+      console.log("isadmin", !authAdmin);
+      //no  es propietaria y administrador
       // si id de la usuarioencontrada != usuarialogeada y si no es administradora(inició sesion)
-      if (user.email !== loggedInUserId && user._id.toString() !== loggedInUserId && !authAdmin) {
+      if (
+        req.user.email !== queryingUser &&
+        req.user._id.toString() !== queryingUser &&
+        !authAdmin
+      ) {
         return resp.status(403).json({ error: "No tienes permisos" });
       }
-      
+
       if (!email && !password && !role) {
         return resp
           .status(400)
           .json({ error: "No se han proporcionado datos para actualizar" });
       }
       console.log("user.role", user.role);
-      console.log("user.role !== admin",user.role !== "admin")
-      console.log ("req.body.role",req.body.role)
+      console.log("user.role !== admin", user.role !== "admin");
+      console.log("req.body.role", req.body.role);
       if (user.role !== "admin") {
-          if (req.body.role) {
-            return resp.status(403).json({ error: "No tienes permisos para cambiar rol" });
-          }
+        if (req.body.role) {
+          return resp
+            .status(403)
+            .json({ error: "No tienes permisos para cambiar rol" });
         }
+      }
       // Verificar si hay cambios para actualizar
       if (req.body.email && req.body.email !== user.email) {
         user.email = req.body.email;
       }
-      // if (req.body.password && req.body.password !== user.password) {
-      //   user.password = req.body.password;
-      // }
+      
       console.log("no hay datos iguales", req.body.password !== user.password);
       console.log("req.body.password", req.body.password);
       console.log("user.password", user.password);
-      console.log("compare", await bcrypt.compare(req.body.password, user.password));
+      console.log(
+        "compare",
+        await bcrypt.compare(req.body.password, user.password)
+      );
       if (await bcrypt.compare(req.body.password, user.password)) {
         return resp
           .status(400)
           .json({ error: "No hay datos nuevos para la contraseña" });
       }
-        const hashedPassword = await bcrypt.hash(req.body.password, 10);
-        user.password = hashedPassword;
+      const hashedPassword = await bcrypt.hash(req.body.password, 10);
+      user.password = hashedPassword;
 
-        
       if (req.body.role && req.body.role !== user.role) {
         user.role = req.body.role;
       }

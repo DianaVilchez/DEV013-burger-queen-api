@@ -39,15 +39,19 @@ module.exports = (app, nextMain) => {
       // if (!(await bcrypt.compare(password, userEmail.password))) {
       //   return resp.status(404).json({ error: "Credenciales no coinciden" });
       // }
+      console.log("userEmail.email",userEmail.email);
       const token = jwt.sign(
-        { email: userEmail, role: userEmail.role, uid: userEmail._id },
+        {
+          email: userEmail.email,
+          role: userEmail.role,
+           uid: userEmail._id},
         secret,
-        { expiresIn: "1h" }
         // console.log(secret),
       );
       console.log("Token JWT creado exitosamente");
       return resp.status(200).json({
-        token: token,
+        token: token
+        ,
         user: {
           id: _id,
           email: email,
