@@ -116,15 +116,15 @@ module.exports = {
       const authAdmin = req.isAdmin;
       // usuario que inició sesión
       const queryingUser = req.params.uid;
-      console.log(user._id.toString() !== queryingUser, "x");
+      console.log(user._id !== queryingUser, "x");
       console.log(authAdmin, "is admin");
       console.log(queryingUser, "queryingUser");
-      console.log(user._id.toString(), "user._id");
+      console.log(user._id, "user._id");
 
       // si no es propietario ni admin
       if (
         req.user.email !== queryingUser &&
-        req.user._id.toString() !== queryingUser &&
+        req.user._id !== queryingUser &&
         !authAdmin
       ) {
         return resp.status(403).json({ error: "No tienes autorización" });
@@ -185,7 +185,7 @@ console.log("y2")
       const queryingUser = req.params.uid;
       console.log("x2")
 
-      console.log(userParams._id.toString() !== queryingUser, "x");
+      console.log(userParams._id !== queryingUser, "x");
       console.log(authAdmin, "is admin");
       console.log(queryingUser, "queryingUser");
       console.log(userParams._id.toString(), "user._id");
@@ -198,12 +198,12 @@ console.log("y2")
       console.log("y3")     
       if (
         req.user.email !== queryingUser &&
-        req.user._id.toString() !== queryingUser &&
+        req.user._id !== queryingUser &&
         !authAdmin
       ) {
         console.log(
           req.user.email !== queryingUser &&
-            req.user._id.toString() !== queryingUser &&
+            req.user._id !== queryingUser &&
             !authAdmin,
           "y"
         );
@@ -248,14 +248,14 @@ console.log("y2")
       const queryingUser = req.params.uid;
 
       console.log(user.email !== queryingUser);
-      console.log(user._id.toString() !== queryingUser);
+      console.log(user._id !== queryingUser);
       console.log(queryingUser);
       console.log("isadmin", !authAdmin);
       //no  es propietaria y administrador
       // si id de la usuarioencontrada != usuarialogeada y si no es administradora(inició sesion)
       if (
         req.user.email !== queryingUser &&
-        req.user._id.toString() !== queryingUser &&
+        req.user._id !== queryingUser &&
         !authAdmin
       ) {
         return resp.status(403).json({ error: "No tienes permisos" });
