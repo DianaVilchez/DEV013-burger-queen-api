@@ -42,7 +42,7 @@ module.exports = {
       resp.status(200).json(results.results);
     } catch (error) {
       console.error("Error al obtener usuarios:", error);
-      resp.status(500).json({ error: "Error interno del servidor" });
+      resp.status(500).json({ error: "Error interno del servidor" ,stack:error});
     }
   },
   createUser: async (req, resp, next) => {

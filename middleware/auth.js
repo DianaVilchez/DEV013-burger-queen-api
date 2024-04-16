@@ -22,12 +22,12 @@ module.exports = (secret) => (req, resp, next) => {
       return next(403);
     }
     // TODO: Verify user identity using `decodeToken.uid`
-    const { uid } = decodedToken;
+    // const { uid } = decodedToken;
 
-    const db = await connect();
-    const collection = db.collection("users");
+    // const db = await connect();
+    // const collection = db.collection("users");
 
-    const user = await collection.findOne({ _id: uid });
+    // const user = await collection.findOne({ _id: uid });
     req.user = decodedToken;
     // validacion de administrador
     if (req.user.role === 'admin') {
